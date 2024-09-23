@@ -14,7 +14,7 @@ config = load_config()  # Grabs config.ini
 
 async def run_ollama_prompt(model, prompt):
     '''
-        Run the spesified prompt on the specified ollama model and return the response.
+        Run the spesified prompt on the specified ollama model and return the response in a thread.
     '''
     try:
         logging.info(
@@ -40,21 +40,22 @@ class Client(revolt.Client):
 
     async def on_message(self, message: revolt.Message):
         try:
-            if config['BOT_NAME'] in message.raw_mentions:
+            if config['BOT_NAME'] in message.raw_mentions:  # Checks for Bot mention
                 mode = config['CHANNELS'].get(
-                    message.channel.id, config['DEFAULT_MODE'])
+                    message.channel.id, config['DEFAULT_MODE'])  # Fetches mode based on channel from config
                 logging.info(
                     "CHANNEL: %s, MODE: %s, USER: %s", message.channel.id, mode, message.author.id)
 
+                # Block access to non-standard mode and non owner ids
                 if mode != config['DEFAULT_MODE'] and message.author.id != config['OWNER_ID']:
                     reply = "ACCESS DENIED - try in another channel :)"
                 else:
                     model = config['MODELS'].get(mode)
                     history = message.state.messages
                     context = ' '.join(
-                        [msg.content for msg in reversed(history)])
+                        [msg.content for msg in reversed(history)])  # Generates Context from message history
                     prompt = config['PROMPTS'].get(
-                        mode).format(context, message.content)
+                        mode).format(context, message.content)  # Fetches prompt based on mode and fills in template
 
                     logging.info("PROMPT: %s", prompt)
 
@@ -62,9 +63,9 @@ class Client(revolt.Client):
                     reply = await run_ollama_prompt(model, prompt)
                     logging.info("REPLY: %s", reply)
 
-                # Send the reply message
-                await message.channel.send(reply)
-        except Exception as e:
+                    # Send the reply message
+                    await message.channel.send(reply)
+        except Exception as e:  # Needs more spesific Exception handling
             logging.error("Error handling message: %s", e)
             traceback.print_exc()
             await message.channel.send("An error occurred while processing your request.")
@@ -78,7 +79,7 @@ async def main():
         async with aiohttp.ClientSession() as session:
             client = Client(session, config['BOT_TOKEN'])
             await client.start()
-    except Exception as e:
+    except Exception as e:  # Needs more spesific Exception handling
         logging.error("Error in main bot function: %s", e)
         traceback.print_exc()
 
